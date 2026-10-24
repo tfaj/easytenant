@@ -55,7 +55,16 @@ export function createApp(deps: Deps) {
     await next();
   });
 
-  app.get("/api/health", (c) => c.json({ ok: true, version: deps.config.version }));
+  // ?deep=1 also pings MongoDB. Cloud Scheduler calls it every 10 minutes
+  // so a Cloud Run instance and its Atlas connection pool stay warm.
+  app.get("/api/health", async (c) => {
+    if (c.req.query("deep") === "1") {
+      const start = performance.now();
+      await deps.client.db(deps.config.dbName).command({ ping: 1 });
+      return c.json({ ok: true, version: deps.config.version, dbMs: Math.round(performance.now() - start) });
+    }
+    return c.json({ ok: true, version: deps.config.version });
+  });
   app.get("/api/config", (c) =>
     c.json({
       faultOverdueDays: deps.config.faultOverdueDays,

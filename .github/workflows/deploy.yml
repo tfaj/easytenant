@@ -1,0 +1,130 @@
+name: Deploy
+
+# Every push to main: test, migrate the database, deploy the API to Cloud
+# Run, then deploy the web app to Cloudflare. Always in that order, so the
+# web app never goes live ahead of the API it calls.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
+  SERVICE: easytenant-api
+  IMAGE: ${{ vars.GCP_REGION || 'europe-west1' }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/easytenant/api
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  api:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write # keyless sign-in to Google Cloud
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Migrate database
+        run: |
+          export MONGODB_URI="$(gcloud secrets versions access latest --secret=mongodb-uri --project "$GCP_PROJECT")"
+          echo "::add-mask::$MONGODB_URI"
+          npm run db:migrate -- --apply
+        env:
+          DB_NAME: ${{ vars.DB_NAME || 'easytenant' }}
+
+      - name: Build and push image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build --build-arg GIT_SHA=${{ github.sha }} -t "$IMAGE:${{ github.sha }}" .
+          docker push "$IMAGE:${{ github.sha }}"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --project "$GCP_PROJECT" --region "$REGION" \
+            --image "$IMAGE:${{ github.sha }}" \
+            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
+            --allow-unauthenticated \
+            --cpu 1 --memory 512Mi --concurrency 80 \
+            --min-instances 0 --max-instances 3 \
+            --cpu-boost --timeout 60s \
+            --set-env-vars "^@^NODE_ENV=production@DB_NAME=${{ vars.DB_NAME || 'easytenant' }}@WEB_ORIGINS=${{ vars.WEB_ORIGINS }}@PUBLIC_WEB_URL=${{ vars.PUBLIC_WEB_URL }}@FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }}@EMAIL_FROM=${{ vars.EMAIL_FROM }}@R2_ACCOUNT_ID=${{ vars.R2_ACCOUNT_ID }}@R2_BUCKET=${{ vars.R2_BUCKET || 'easytenant-media' }}@GIT_SHA=${{ github.sha }}" \
+            --set-secrets "MONGODB_URI=mongodb-uri:latest,R2_ACCESS_KEY_ID=r2-access-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret-access-key:latest,RESEND_API_KEY=resend-api-key:latest,JOB_SECRET=job-secret:latest" \
+            --quiet
+          url="$(gcloud run services describe "$SERVICE" --project "$GCP_PROJECT" --region "$REGION" --format 'value(status.url)')"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS "${{ steps.deploy.outputs.url }}/api/health?deep=1"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+      - name: Scheduled jobs (keep-warm ping and daily reminders)
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          secret="$(gcloud secrets versions access latest --secret=job-secret --project "$GCP_PROJECT")"
+          echo "::add-mask::$secret"
+          upsert() { # name schedule uri method [headers]
+            if gcloud scheduler jobs describe "$1" --location "$REGION" --project "$GCP_PROJECT" >/dev/null 2>&1; then
+              gcloud scheduler jobs update http "$1" --location "$REGION" --project "$GCP_PROJECT" --schedule "$2" --uri "$3" --http-method "$4" ${5:+--update-headers "$5"} --quiet
+            else
+              gcloud scheduler jobs create http "$1" --location "$REGION" --project "$GCP_PROJECT" --schedule "$2" --uri "$3" --http-method "$4" ${5:+--headers "$5"} --time-zone "Africa/Lagos" --quiet
+            fi
+          }
+          upsert easytenant-keep-warm "*/10 6-23 * * *" "$url/api/health?deep=1" GET
+          upsert easytenant-daily "0 7 * * *" "$url/internal/jobs/daily" POST "x-job-secret=$secret"
+
+  web:
+    needs: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build -w @easytenant/web
+        env:
+          VITE_API_URL: ${{ vars.API_PUBLIC_URL || needs.api.outputs.url }}
+          VITE_APP_URL: ${{ vars.PUBLIC_WEB_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+      - name: Deploy to Cloudflare
+        working-directory: apps/web
+        run: npx --yes wrangler@4 deploy --name "${{ vars.CLOUDFLARE_WORKER_NAME || 'easytenant-web' }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

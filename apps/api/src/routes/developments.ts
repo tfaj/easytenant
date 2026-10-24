@@ -15,12 +15,12 @@ import { body, type AppEnv, type Deps } from "../context";
 import type { DevelopmentDoc } from "../db/types";
 import { notFound } from "../lib/errors";
 import { loadDevelopment } from "../access/loaders";
+import { SEARCH_INDEX } from "../db/indexes";
 import { oid, isoRequired } from "../lib/ids";
 import { escapeRegex, paginate, parseLimit } from "../lib/pagination";
 import { audit } from "../lib/audit";
 import { faultSummaries } from "./faults";
 
-export const SEARCH_INDEX = "developments_search";
 
 export function devDto(
   deps: Deps,

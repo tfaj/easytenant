@@ -1,5 +1,9 @@
 import type { Db, IndexDescription } from "mongodb";
 
+/** Atlas Search index for the developments search box (created by the
+ * migration runner; the API falls back to a regex scan without it). */
+export const SEARCH_INDEX = "developments_search";
+
 /**
  * Every index the API relies on. Applied by the migration runner
  * (npm run db:migrate), not at server boot, so cold starts stay fast.

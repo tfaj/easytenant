@@ -44,7 +44,7 @@ function ManagerOverview() {
         </div>
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Panel padded={false}>
           <div className="px-5 pt-5">
             <PanelTitle action={<Link to="/faults" className="text-[13px] font-semibold text-primary hover:underline">All faults</Link>}>Latest faults</PanelTitle>

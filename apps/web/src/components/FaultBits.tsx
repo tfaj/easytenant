@@ -71,8 +71,10 @@ export function StageTrack({ status, times }: { status: FaultStatus; times: Part
       {FAULT_STAGES.map((s, i) => {
         const done = !cancelled && i < at;
         const current = !cancelled && i === at;
+        // On phones, keep the list short: everything up to the next step.
+        const farFuture = !cancelled && i > at + 1;
         return (
-          <li key={s} className="relative flex gap-3 pb-4 sm:block sm:pb-0" aria-current={current ? "step" : undefined}>
+          <li key={s} className={cx("relative flex gap-3 pb-4 sm:block sm:pb-0", farFuture && "hidden sm:block")} aria-current={current ? "step" : undefined}>
             {/* connector */}
             {i < FAULT_STAGES.length - 1 && (
               <span
@@ -102,6 +104,11 @@ export function StageTrack({ status, times }: { status: FaultStatus; times: Part
           </li>
         );
       })}
+      {!cancelled && at + 2 < FAULT_STAGES.length && (
+        <li className="pl-10 text-[13px] text-ink-3 sm:hidden">
+          {FAULT_STAGES.length - at - 2} more step{FAULT_STAGES.length - at - 2 === 1 ? "" : "s"} to close
+        </li>
+      )}
     </ol>
   );
 }

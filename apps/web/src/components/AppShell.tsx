@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
@@ -29,6 +29,14 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   end?: boolean;
+}
+
+/** The most specific nav item that matches the path wins, so /faults/new
+ * highlights "Report" rather than both "Report" and "My faults". */
+function activeTo(items: NavItem[], pathname: string): string | undefined {
+  return items
+    .filter((it) => pathname === it.to || (it.to !== "/" && !it.end && pathname.startsWith(it.to + "/")))
+    .sort((a, b) => b.to.length - a.to.length)[0]?.to;
 }
 
 export function navFor(caps: Capabilities): NavItem[] {
@@ -210,7 +218,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const { caps, me } = useAuth();
   const items = navFor(caps);
   const location = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [location.pathname]);
+  const current = activeTo(items, location.pathname);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
@@ -221,20 +232,18 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </div>
         <nav className="flex-1 space-y-0.5 px-3" aria-label="Main">
           {items.map((it) => (
-            <NavLink
+            <Link
               key={it.to}
               to={it.to}
-              end={it.end}
-              className={({ isActive }) =>
-                cx(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] font-medium transition-colors",
-                  isActive ? "bg-primary-soft text-primary" : "text-ink-2 hover:bg-sunken hover:text-ink"
-                )
-              }
+              className={cx(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-[14px] font-medium transition-colors",
+                current === it.to ? "bg-primary-soft text-primary" : "text-ink-2 hover:bg-sunken hover:text-ink"
+              )}
+              aria-current={current === it.to ? "page" : undefined}
             >
               <it.icon className="size-[18px]" aria-hidden />
               {it.label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
         <div className="border-t border-line-2 px-5 py-4 text-[12px] text-ink-3">
@@ -267,15 +276,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
         aria-label="Main"
       >
         {items.slice(0, 5).map((it) => (
-          <NavLink
+          <Link
             key={it.to}
             to={it.to}
-            end={it.end}
-            className={({ isActive }) => cx("flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold", isActive ? "text-primary" : "text-ink-3")}
+            className={cx("flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold", current === it.to ? "text-primary" : "text-ink-3")}
+            aria-current={current === it.to ? "page" : undefined}
           >
             <it.icon className="size-5" aria-hidden />
             {it.label}
-          </NavLink>
+          </Link>
         ))}
       </nav>
     </div>

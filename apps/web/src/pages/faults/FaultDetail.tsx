@@ -207,6 +207,14 @@ function ActionForm({ fault, action }: { fault: FaultDetailDto; action: Transiti
   };
 
   const danger = def.tone === "danger";
+  const [expanded, setExpanded] = useState(!danger);
+  if (!expanded) {
+    return (
+      <div className="border-t border-line pt-4">
+        <Button variant="danger" size="sm" onClick={() => setExpanded(true)}>{def.label}</Button>
+      </div>
+    );
+  }
   return (
     <form
       className={cx("space-y-3", danger && "border-t border-line pt-5")}

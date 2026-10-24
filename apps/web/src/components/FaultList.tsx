@@ -9,20 +9,20 @@ import { UnitPlate } from "./ui";
 export function FaultList({ items, showDevelopment = true }: { items: FaultSummaryDto[]; showDevelopment?: boolean }) {
   return (
     <>
-      <table className="hidden w-full text-left text-sm md:table">
+      <div className="hidden overflow-x-auto md:block">
+      <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
           <tr className="border-b border-line text-[12px] text-ink-3">
             <th className="py-2.5 pl-5 pr-3 font-medium">Fault</th>
             <th className="px-3 py-2.5 font-medium">Unit</th>
             <th className="px-3 py-2.5 font-medium">Stage</th>
-            <th className="px-3 py-2.5 font-medium">Priority</th>
-            <th className="py-2.5 pl-3 pr-5 font-medium">Age</th>
+            <th className="py-2.5 pl-3 pr-5 font-medium">Status</th>
           </tr>
         </thead>
         <tbody>
           {items.map((f) => (
             <tr key={f.id} className="group relative border-b border-line-2 last:border-0 hover:bg-sunken/60">
-              <td className="max-w-[320px] py-3 pl-5 pr-3">
+              <td className="max-w-[300px] py-3 pl-5 pr-3">
                 <Link to={`/faults/${f.id}`} className="block truncate font-semibold text-ink after:absolute after:inset-0 group-hover:text-primary">
                   {f.title}
                 </Link>
@@ -39,12 +39,17 @@ export function FaultList({ items, showDevelopment = true }: { items: FaultSumma
               </td>
               <td className="px-3 py-3"><UnitPlate size="sm">{f.unit.unitNumber}</UnitPlate></td>
               <td className="px-3 py-3"><MiniTrack status={f.status} /></td>
-              <td className="px-3 py-3"><PriorityPill priority={f.priority} /></td>
-              <td className="py-3 pl-3 pr-5"><ToneBadge status={f.status} createdAt={f.createdAt} overdueDays={f.development.overdueDays} /></td>
+              <td className="py-3 pl-3 pr-5">
+                <div className="flex flex-wrap gap-1.5">
+                  <PriorityPill priority={f.priority} />
+                  <ToneBadge status={f.status} createdAt={f.createdAt} overdueDays={f.development.overdueDays} />
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
 
       <ul className="divide-y divide-line-2 md:hidden">
         {items.map((f) => (

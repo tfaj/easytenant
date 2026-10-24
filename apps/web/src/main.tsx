@@ -5,6 +5,8 @@ import { ApiError } from "./lib/api";
 import { AuthProvider } from "./auth/AuthProvider";
 import { ToastProvider } from "./components/Toast";
 import App from "./App";
+// Self-hosted variable font: no third-party request, cached with the app.
+import "@fontsource-variable/schibsted-grotesk/wght.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

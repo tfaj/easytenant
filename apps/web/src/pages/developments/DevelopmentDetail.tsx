@@ -134,10 +134,7 @@ function UnitsTab({ dev }: { dev: DevelopmentDto }) {
                         <div className="text-[13px] text-ink-3">Expires {formatDate(u.pendingInvite.expiresAt)}</div>
                       </>
                     ) : (
-                      <>
-                        <div className="font-medium text-ink-3">Vacant</div>
-                        <div className="text-[13px] text-ink-3">{u.type}</div>
-                      </>
+                      <div className="capitalize text-ink-3">{u.type}</div>
                     )}
                   </div>
                   {u.ownerName || u.ownerEmail ? <div className="hidden min-w-0 max-w-48 text-[13px] text-ink-3 lg:block"><span className="block truncate">Owner: {u.ownerName || u.ownerEmail}</span></div> : null}

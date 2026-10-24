@@ -1,0 +1,17 @@
+{
+  "name": "easytenant",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "dev:api": "npm run dev -w @easytenant/api",
+    "dev:web": "npm run dev -w @easytenant/web",
+    "build": "npm run build -w @easytenant/api && npm run build -w @easytenant/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run typecheck",
+    "db:migrate": "npm run migrate -w @easytenant/api --"
+  }
+}

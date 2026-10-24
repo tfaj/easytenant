@@ -1,5 +1,6 @@
+// Strip a UTF-8 BOM (Excel adds one) before parsing.
 /**
- * Minimal CSV parser for the "bulk add units" upload (Admin dashboard).
+ * Minimal CSV parser for the unit import.
  * Handles quoted fields with embedded commas/quotes/newlines — enough for
  * a file exported from Excel/Sheets — without pulling in a dependency for
  * what's a small, well-defined use case (a couple of columns, a few
@@ -7,10 +8,10 @@
  * lowercased, trimmed header.
  */
 export function parseCsv(text: string): Record<string, string>[] {
-  const rows = splitCsvRows(text);
+  const rows = splitCsvRows(text.replace(/^\uFEFF/, ""));
   if (rows.length === 0) return [];
 
-  const headers = rows[0].map((h) => h.trim().toLowerCase());
+  const headers = rows[0]!.map((h) => h.trim().toLowerCase());
   return rows
     .slice(1)
     .filter((row) => row.some((cell) => cell.trim() !== ""))

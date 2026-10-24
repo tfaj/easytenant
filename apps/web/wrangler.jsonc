@@ -1,0 +1,10 @@
+{
+  // Cloudflare Workers static assets. Build: `npm run build` in apps/web,
+  // output ./dist. See docs/DEPLOY.md.
+  "name": "easytenant-web",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

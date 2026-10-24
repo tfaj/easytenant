@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Lagoon green for action, cool paper for the page, amber
+ * for work underway, brick for overdue. Every colour has a dark-mode pair.
+ */
+:root {
+  --page: #f3f5f4;
+  --panel: #ffffff;
+  --sunken: #eaeeec;
+  --ink: #1c2b2e;
+  --ink-2: #4a5a5d;
+  --ink-3: #7a888a;
+  --line: #dde3e1;
+  --line-2: #e9edec;
+  --primary: #0f6e5b;
+  --primary-hover: #0b5a4a;
+  --primary-ink: #ffffff;
+  --primary-soft: #e1f0ec;
+  --amber: #b7790a;
+  --amber-soft: #fbf0d9;
+  --brick: #b93a2b;
+  --brick-soft: #fbe6e2;
+  --sky: #2c6aa0;
+  --sky-soft: #e3eef8;
+  --moss: #3d7a3a;
+  --moss-soft: #e5f1e3;
+  --focus: #0f6e5b;
+  color-scheme: light;
+}
+
+.dark {
+  --page: #0e1618;
+  --panel: #142023;
+  --sunken: #0b1214;
+  --ink: #e2ebe9;
+  --ink-2: #a9b8b6;
+  --ink-3: #75888a;
+  --line: #24363a;
+  --line-2: #1c2c2f;
+  --primary: #3fc1a2;
+  --primary-hover: #5fd3b6;
+  --primary-ink: #06221c;
+  --primary-soft: #133a33;
+  --amber: #e2a63a;
+  --amber-soft: #3a2c10;
+  --brick: #f07a69;
+  --brick-soft: #3d1c18;
+  --sky: #7fb6e6;
+  --sky-soft: #15283a;
+  --moss: #8ccf86;
+  --moss-soft: #1a3119;
+  --focus: #5fd3b6;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-soft: var(--primary-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-brick: var(--brick);
+  --color-brick-soft: var(--brick-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-moss: var(--moss);
+  --color-moss-soft: var(--moss-soft);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-page text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+    font-feature-settings: "tnum" 0;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--primary-soft);
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MONGOMS_VERSION: "8.0.23"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check
+        run: npm run typecheck
+      - name: Test (shared + API against a real MongoDB replica set)
+        run: npm test
+      - name: Build web
+        run: npm run build -w @easytenant/web
+        env:
+          VITE_API_URL: https://example.invalid
+      - name: Build API image
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t easytenant-api:ci .

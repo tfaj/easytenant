@@ -1,0 +1,44 @@
+name: Database migration
+
+# Manual run. Defaults to a dry run that changes nothing and prints what it
+# would do. Use it before the first deploy, or whenever you're unsure.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the changes (leave unticked for a dry run)"
+        type: boolean
+        default: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Migrate
+        run: |
+          export MONGODB_URI="$(gcloud secrets versions access latest --secret=mongodb-uri --project "${{ vars.GCP_PROJECT_ID }}")"
+          echo "::add-mask::$MONGODB_URI"
+          npm run db:migrate -- ${{ inputs.apply && '--apply' || '' }} | tee migration.log
+        env:
+          DB_NAME: ${{ vars.DB_NAME || 'easytenant' }}
+      - name: Summary
+        if: always()
+        run: |
+          { echo '```'; cat migration.log 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

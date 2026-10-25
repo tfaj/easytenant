@@ -34,6 +34,14 @@ export function authErrorMessage(err: unknown): string {
     "auth/network-request-failed": "No connection. Check your network and try again.",
     "auth/expired-action-code": "This link has expired. Request a new one.",
     "auth/invalid-action-code": "This link has already been used or is invalid.",
+    "auth/invalid-api-key": "Sign-in isn't configured correctly on this site (Firebase API key). Contact the administrator.",
+    "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "Sign-in isn't configured correctly on this site (Firebase API key). Contact the administrator.",
+    "auth/unauthorized-domain": "This web address isn't allowed to sign in yet. Add it under Firebase → Authentication → Settings → Authorized domains.",
+    "auth/operation-not-allowed": "This sign-in method is turned off in Firebase.",
+    "auth/user-disabled": "This account has been disabled.",
+    "auth/popup-blocked": "Your browser blocked the Google window. Allow pop-ups for this site and try again.",
   };
-  return messages[code] ?? "Something went wrong. Try again.";
+  // Unknown codes keep the code visible, so problems can be diagnosed.
+  if (!messages[code]) console.error("[auth]", err);
+  return messages[code] ?? `Something went wrong${code ? ` (${code})` : ""}. Try again.`;
 }

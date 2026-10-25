@@ -47,12 +47,12 @@ export const MIGRATIONS: Migration[] = [
       for (const [name, fields] of Object.entries(DATE_FIELDS)) {
         const col = db.collection(name);
         for (const f of fields) {
-          const empty = await col.countDocuments({ [f]: { $in: ["", null] } });
+          const empty = await col.countDocuments({ [f]: { $in: ["", null], $exists: true } });
           const strings = await col.countDocuments({ [f]: { $type: "string", $ne: "" } });
           if (!empty && !strings) continue;
           log(`${name}.${f}: ${strings} string date(s) to convert, ${empty} empty/null to remove`);
           if (dryRun) continue;
-          if (empty) await col.updateMany({ [f]: { $in: ["", null] } }, { $unset: { [f]: "" } });
+          if (empty) await col.updateMany({ [f]: { $in: ["", null], $exists: true } }, { $unset: { [f]: "" } });
           await col.updateMany({ [f]: { $type: "string" } }, [
             { $set: { [f]: { $convert: { input: `$${f}`, to: "date", onError: `$${f}`, onNull: "$$REMOVE" } } } },
           ]);
